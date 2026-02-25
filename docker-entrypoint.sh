@@ -3,11 +3,53 @@ set -e
 
 echo "=== Docker Entrypoint Starting ==="
 
-# Show current DB configuration for debugging
-echo "DB_CONNECTION=${DB_CONNECTION:-not set}"
+# -------------------------------------------------------
+# Bridge Render's DATABASE_URL to Laravel's individual DB_* variables
+# Render provides DATABASE_URL as:
+#   postgres://user:password@host:port/dbname
+# Laravel needs: DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
+# -------------------------------------------------------
+if [ -n "$DATABASE_URL" ]; then
+    echo "DATABASE_URL found, parsing into DB_* variables..."
+
+    # Always force pgsql driver
+    export DB_CONNECTION="pgsql"
+
+    # Parse the URL components
+    # Remove the postgres:// or postgresql:// prefix
+    DB_URL_STRIPPED="${DATABASE_URL#postgres://}"
+    DB_URL_STRIPPED="${DB_URL_STRIPPED#postgresql://}"
+
+    # Extract user:password@host:port/dbname
+    USERPASS="${DB_URL_STRIPPED%%@*}"
+    HOSTPORTDB="${DB_URL_STRIPPED#*@}"
+
+    export DB_USERNAME="${USERPASS%%:*}"
+    export DB_PASSWORD="${USERPASS#*:}"
+
+    HOSTPORT="${HOSTPORTDB%%/*}"
+    export DB_DATABASE="${HOSTPORTDB#*/}"
+
+    export DB_HOST="${HOSTPORT%%:*}"
+    export DB_PORT="${HOSTPORT#*:}"
+
+    # Also set DB_URL for Laravel's url config key
+    export DB_URL="$DATABASE_URL"
+
+    echo "✅ Parsed DATABASE_URL successfully"
+else
+    echo "⚠️ DATABASE_URL not found, using individual DB_* variables"
+    # Default to pgsql if DB_CONNECTION not set
+    export DB_CONNECTION="${DB_CONNECTION:-pgsql}"
+fi
+
+# Debug: show resolved config
+echo "DB_CONNECTION=${DB_CONNECTION}"
 echo "DB_HOST=${DB_HOST:-not set}"
 echo "DB_PORT=${DB_PORT:-not set}"
 echo "DB_DATABASE=${DB_DATABASE:-not set}"
+echo "DB_USERNAME=${DB_USERNAME:-not set}"
+echo "DB_PASSWORD=****"
 
 # Verify pdo_pgsql extension is loaded
 php -m | grep pdo_pgsql && echo "✅ pdo_pgsql loaded" || echo "⚠️ pdo_pgsql NOT loaded"
@@ -18,18 +60,9 @@ php artisan config:cache
 php artisan route:cache
 php artisan view:cache
 
-# Handle SQLite vs PostgreSQL
-if [ "$DB_CONNECTION" = "sqlite" ]; then
-    echo "Using SQLite database..."
-    mkdir -p database
-    touch database/database.sqlite
-    chown -R www-data:www-data database
-    chmod -R 775 database
-else
-    echo "Using $DB_CONNECTION database..."
-    echo "Testing database connection..."
-    php artisan db:show || echo "⚠️ Database connection test failed, continuing anyway..."
-fi
+# Test database connection
+echo "Testing database connection..."
+php artisan db:show || echo "⚠️ Database connection test failed, continuing anyway..."
 
 echo "Running migrations..."
 php artisan migrate --force --ansi
