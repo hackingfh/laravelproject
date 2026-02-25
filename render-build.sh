@@ -4,14 +4,30 @@ set -o errexit
 
 echo "--- Starting Build Process ---"
 
+# Ensure storage directories exist
+echo "Ensuring storage directories..."
+mkdir -p storage/framework/{sessions,views,cache}
+mkdir -p storage/logs
+mkdir -p bootstrap/cache
+chmod -R 775 storage bootstrap/cache
+
 # Install composer dependencies
 echo "Installing Composer dependencies..."
-composer install --no-interaction --no-dev --optimize-autoloader
+if [ -f "composer.json" ]; then
+    composer install --no-interaction --no-dev --optimize-autoloader
+else
+    echo "Error: composer.json not found"
+    exit 1
+fi
 
 # Install and build npm assets
-echo "Installing and building NPM assets..."
-npm install
-npm run build
+if command -v npm &> /dev/null; then
+    echo "Installing and building NPM assets..."
+    npm install
+    npm run build
+else
+    echo "NPM not found, skipping asset build"
+fi
 
 # Clear and cache
 echo "Clearing and caching Laravel components..."
