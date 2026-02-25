@@ -65,19 +65,18 @@ echo "=========================="
 # Verify pdo_pgsql extension is loaded
 php -m | grep pdo_pgsql && echo "✅ pdo_pgsql loaded" || echo "❌ pdo_pgsql NOT loaded"
 
-# Clear stale config cache — do NOT re-cache for now (diagnostic mode)
+# Clear stale config cache then rebuild with current env vars
 echo "Clearing all caches..."
 php artisan config:clear
 php artisan route:clear
 php artisan view:clear
 php artisan cache:clear 2>/dev/null || true
 
-# TEMPORARILY DISABLED: config:cache
-# This ensures Laravel reads env vars directly from the environment
-# instead of from a potentially stale cached file
-# php artisan config:cache
-# php artisan route:cache
-# php artisan view:cache
+# Re-cache with the resolved environment variables (important for production performance)
+echo "Re-caching config, routes and views..."
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
 
 # Configure Apache to listen on Render's PORT (default 10000)
 if [ -n "$PORT" ]; then
@@ -86,12 +85,12 @@ if [ -n "$PORT" ]; then
     sed -i "s/:80/:$PORT/" /etc/apache2/sites-available/000-default.conf
 fi
 
-# Test database connection
+# Test database connection — stop deployment if DB is unreachable
 echo "Testing database connection..."
-php artisan db:show 2>&1 || echo "⚠️ Database connection test failed, continuing..."
+php artisan db:show 2>&1 || { echo "❌ Database connection FAILED — aborting deployment."; exit 1; }
 
 echo "Running migrations..."
-php artisan migrate --force --ansi 2>&1 || echo "⚠️ Migrations failed!"
+php artisan migrate --force --ansi 2>&1 || { echo "❌ Migrations FAILED — aborting deployment."; exit 1; }
 
 echo "=== Docker Entrypoint Complete ==="
 
