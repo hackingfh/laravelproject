@@ -11,9 +11,8 @@ services:
       - key: APP_URL
         sync: false
       - key: DB_CONNECTION
-        value: sqlite
-      - key: DB_DATABASE
-        value: /var/www/html/database/database.sqlite
+        value: pgsql
+      # DATABASE_URL est injecté automatiquement par Render si vous liez une DB PostgreSQL
       - key: LOG_CHANNEL
         value: stderr
       - key: APP_KEY
