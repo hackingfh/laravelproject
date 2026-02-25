@@ -1,0 +1,177 @@
+openapi: 3.0.3
+info:
+  title: Boutique Montres - Front API
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1:8000
+paths:
+  /{locale}/:
+    get:
+      summary: Page d'accueil
+      parameters:
+        - in: path
+          name: locale
+          required: false
+          schema: { type: string, enum: [fr, en] }
+      responses:
+        '200':
+          description: Données d'accueil
+  /{locale}/collections:
+    get:
+      summary: Liste des collections
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: sort
+          schema: { type: string, enum: [name,date,popularity] }
+      responses:
+        '200': { description: OK }
+  /{locale}/collections/{slug}:
+    get:
+      summary: Détail collection et produits
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /{locale}/products:
+    get:
+      summary: Catalogue produits
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+        - in: query
+          name: q
+          schema: { type: string }
+        - in: query
+          name: sort
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /{locale}/products/{slug}:
+    get:
+      summary: Détail produit
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+        - in: path
+          name: slug
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: OK }
+  /{locale}/cart:
+    get:
+      summary: Contenu du panier
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+      responses:
+        '200': { description: OK }
+  /{locale}/cart/add/{product}:
+    post:
+      summary: Ajouter un article
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+        - in: path
+          name: product
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: false
+      responses:
+        '200': { description: Ajout réussi }
+  /{locale}/cart/update:
+    post:
+      summary: Mettre à jour un article
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+      responses:
+        '200': { description: OK }
+  /{locale}/cart/remove:
+    post:
+      summary: Supprimer un article
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+      responses:
+        '200': { description: OK }
+  /{locale}/cart/promo:
+    post:
+      summary: Appliquer un code promo
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+      responses:
+        '200': { description: OK }
+  /{locale}/checkout:
+    get:
+      summary: Afficher l'état du checkout
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+      responses:
+        '200': { description: OK }
+    post:
+      summary: Créer la commande
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+      responses:
+        '200': { description: Commande créée }
+  /{locale}/orders:
+    get:
+      summary: Historique des commandes
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+      responses:
+        '200': { description: OK }
+  /{locale}/orders/{id}:
+    get:
+      summary: Détail d'une commande
+      parameters:
+        - in: path
+          name: locale
+          required: true
+          schema: { type: string, enum: [fr, en] }
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK }
