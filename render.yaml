@@ -1,10 +1,8 @@
 services:
   - type: web
     name: swiss-watches-mauritania
-    env: php
+    env: docker
     plan: free # Change to starter or higher for persistence (Disk)
-    buildCommand: ./render-build.sh
-    startCommand: php artisan serve --host 0.0.0.0 --port $PORT
     envVars:
       - key: APP_ENV
         value: production
@@ -15,7 +13,7 @@ services:
       - key: DB_CONNECTION
         value: sqlite
       - key: DB_DATABASE
-        value: /opt/render/project/src/database/database.sqlite
+        value: /var/www/html/database/database.sqlite
       - key: LOG_CHANNEL
         value: errorlog
       - key: APP_KEY
