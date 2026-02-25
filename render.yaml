@@ -7,7 +7,7 @@ services:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
-        value: false
+        value: true # Temporairement à true pour le diagnostic
       - key: APP_URL
         sync: false
       - key: DB_CONNECTION
@@ -15,7 +15,7 @@ services:
       - key: DB_DATABASE
         value: /var/www/html/database/database.sqlite
       - key: LOG_CHANNEL
-        value: errorlog
+        value: stderr
       - key: APP_KEY
         generateValue: true
       - key: NODE_VERSION
