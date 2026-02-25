@@ -6,12 +6,14 @@
     <nav class="bg-mathey-cream border-b border-mathey-border">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
             <ol class="flex items-center space-x-2 text-sm text-mathey-gray">
-                <li><a href="{{ url('/') }}" class="hover:text-mathey-gold">Accueil</a></li>
+                <li><a href="{{ route('home', ['locale' => app()->getLocale()]) }}"
+                        class="hover:text-mathey-gold">Accueil</a></li>
                 <li><svg class="w-4 h-4">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
                     </svg></li>
-                <li><a href="{{ url('/collections') }}" class="hover:text-mathey-gold">Collections</a></li>
-                <li><a href="{{ url('/collections/' . $product->collection->slug) }}"
+                <li><a href="{{ route('collections.index', ['locale' => app()->getLocale()]) }}"
+                        class="hover:text-mathey-gold">Collections</a></li>
+                <li><a href="{{ route('collections.show', ['locale' => app()->getLocale(), 'slug' => $product->collection->slug]) }}"
                         class="hover:text-mathey-gold">{{ $product->collection->name }}</a></li>
                 <li class="text-mathey-text font-medium">{{ $product->name }}</li>
             </ol>
@@ -74,7 +76,7 @@
 
                     <p class="text-mathey-gray leading-relaxed">{{ Str::limit($product->description, 200) }}</p>
 
-                    <form method="post" action="{{ url('/cart/add/' . $product->id) }}" class="space-y-4">
+                    <form method="post" action="{{ route('cart.add', ['locale' => app()->getLocale(), 'product' => $product->id]) }}" class="space-y-4">
                         @csrf
                         <div>
                             <label class="block text-sm font-medium text-mathey-blue mb-2">Bracelet</label>

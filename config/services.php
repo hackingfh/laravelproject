@@ -39,6 +39,7 @@ return [
         'sid' => env('TWILIO_SID'),
         'token' => env('TWILIO_TOKEN'),
         'whatsapp_from' => env('TWILIO_WHATSAPP_FROM'),
+        'default_country_code' => env('TWILIO_DEFAULT_COUNTRY_CODE', '222'),
     ],
 
 ];

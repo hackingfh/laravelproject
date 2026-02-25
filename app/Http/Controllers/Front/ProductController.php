@@ -16,11 +16,12 @@ class ProductController extends Controller
     public function index(Request $request, string $locale = 'fr')
     {
         $filters = [
-            'q' => $request->string('q')->toString(),
+            'q' => $request->input('q', $request->input('search', '')),
             'price_min' => $request->input('price_min'),
             'price_max' => $request->input('price_max'),
             'brand' => $request->string('brand')->toString(),
             'category' => $request->string('category')->toString(),
+            'collection' => $request->string('collection')->toString(),
             'rating' => $request->input('rating'),
             'availability' => $request->string('availability')->toString(),
             'sort' => $request->string('sort')->toString(),

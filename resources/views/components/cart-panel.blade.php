@@ -84,10 +84,12 @@
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json',
                 'X-CSRF-TOKEN': '{{ csrf_token() }}'
             },
             body: JSON.stringify({ item_id: itemId })
-        }).then(res => res.json())
-            .then(data => window.location.reload());
+        }).then(res => {
+            if (res.ok) window.location.reload();
+        });
     }
 </script>

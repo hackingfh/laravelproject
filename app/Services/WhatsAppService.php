@@ -12,9 +12,25 @@ class WhatsAppService
 
     public function __construct()
     {
+        $options = [];
+
+        // On Windows local dev, SSL certificates are often missing
+        // This is a workaround for the 'SSL certificate problem' error
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            $curlOptions = [
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+            ];
+            $httpClient = new \Twilio\Http\CurlClient($curlOptions);
+            $options['httpClient'] = $httpClient;
+        }
+
         $this->client = new Client(
             config('services.twilio.sid'),
-            config('services.twilio.token')
+            config('services.twilio.token'),
+            null, // accountSid null to use sid
+            null, // region
+            $options['httpClient'] ?? null
         );
     }
 
@@ -22,7 +38,7 @@ class WhatsAppService
     {
         try {
             $phoneNumber = $this->formatPhoneNumber($order->user->phone);
-            
+
             if (!$phoneNumber) {
                 Log::warning('Numéro de téléphone invalide pour WhatsApp', [
                     'order_id' => $order->id,
@@ -33,11 +49,16 @@ class WhatsAppService
             }
 
             $message = $this->buildOrderConfirmationMessage($order);
-            
+
+            $from = config('services.twilio.whatsapp_from');
+            if (!str_starts_with($from, 'whatsapp:')) {
+                $from = 'whatsapp:' . $from;
+            }
+
             $this->client->messages->create(
                 $phoneNumber,
                 [
-                    'from' => 'whatsapp:' . config('services.twilio.whatsapp_from'),
+                    'from' => $from,
                     'body' => $message
                 ]
             );
@@ -63,7 +84,7 @@ class WhatsAppService
         $message = "🎉 *Confirmation de commande*\n\n";
         $message .= "Bonjour {$order->user->name},\n\n";
         $message .= "Votre commande *{$order->order_number}* a été confirmée !\n\n";
-        
+
         $message .= "*Détails de la commande:*\n";
         $message .= "📦 Numéro: {$order->order_number}\n";
         $message .= "💰 Total: " . number_format($order->total, 2, ',', ' ') . " €\n";
@@ -93,14 +114,34 @@ class WhatsAppService
             return null;
         }
 
-        // Supprimer tous les caractères non numériques
-        $phone = preg_replace('/[^0-9]/', '', $phone);
-        
-        // Ajouter le préfixe international si nécessaire
-        if (strlen($phone) === 10 && str_starts_with($phone, '0')) {
-            $phone = '33' . substr($phone, 1); // France
-        } elseif (strlen($phone) === 9 && !str_starts_with($phone, '0')) {
-            $phone = '33' . $phone; // France sans le 0 initial
+        // Remove all characters except digits and the plus sign
+        $phone = preg_replace('/[^+0-9]/', '', $phone);
+
+        // Handle 00 prefix (convert to +)
+        if (str_starts_with($phone, '00')) {
+            $phone = '+' . substr($phone, 2);
+        }
+
+        // If it already starts with +, we assume it's a valid international number
+        if (str_starts_with($phone, '+')) {
+            return (strlen($phone) > 5) ? 'whatsapp:' . $phone : null;
+        }
+
+        // Default country code (Mauritania = 222)
+        $defaultPrefix = config('services.twilio.default_country_code', '222');
+
+        if (str_starts_with($phone, '0')) {
+            // If it starts with 0, it's likely a local format (e.g., 06... in FR, or 0... in other countries)
+            // We strip the 0 and add the default country prefix
+            $phone = '+' . $defaultPrefix . substr($phone, 1);
+        } else {
+            // Check if it already starts with the default prefix but lacks the +
+            if (str_starts_with($phone, $defaultPrefix)) {
+                $phone = '+' . $phone;
+            } else {
+                // It's likely a local number without a prefix
+                $phone = '+' . $defaultPrefix . $phone;
+            }
         }
 
         return 'whatsapp:' . $phone;
@@ -108,7 +149,7 @@ class WhatsAppService
 
     private function translateStatus(string $status): string
     {
-        return match($status) {
+        return match ($status) {
             'pending' => 'En attente',
             'processing' => 'En traitement',
             'shipped' => 'Expédiée',
@@ -120,7 +161,7 @@ class WhatsAppService
 
     private function translatePaymentStatus(string $status): string
     {
-        return match($status) {
+        return match ($status) {
             'pending' => 'En attente',
             'paid' => 'Payée',
             'failed' => 'Échouée',

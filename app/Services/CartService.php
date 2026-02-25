@@ -10,13 +10,14 @@ class CartService
     public function __construct(
         private CartRepositoryInterface $cartRepository,
         private SessionManager $session
-    ) {}
+    ) {
+    }
 
     public function count(): int
     {
         $sessionId = $this->session->getId();
         $cart = $this->cartRepository->forSession($sessionId);
-        
+
         return $cart->items->sum('quantity');
     }
 
@@ -43,6 +44,12 @@ class CartService
     {
         $cart = $this->getCart();
         $this->cartRepository->removeItem($cart, $itemId);
+    }
+
+    public function clear(): void
+    {
+        $cart = $this->getCart();
+        $this->cartRepository->clear($cart);
     }
 
     public function totals(): array

@@ -18,4 +18,6 @@ interface CartRepositoryInterface
     public function totals(Cart $cart): array;
 
     public function applyPromo(Cart $cart, ?string $code): array;
+
+    public function clear(Cart $cart): void;
 }

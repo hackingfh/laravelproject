@@ -22,55 +22,83 @@ class CheckoutController extends Controller
         $this->middleware('auth');
     }
 
-    public function index(Request $request)
+    public function index(Request $request, string $locale)
     {
         $cart = $this->carts->forSession($request->session()->getId());
         $steps = ['shipping', 'billing', 'payment'];
 
-        return response()->json(compact('cart', 'steps'));
+        return view('checkout.index', compact('cart', 'steps'));
     }
 
     public function store(StoreOrderRequest $request)
     {
         $user = Auth::user();
         $cart = $this->carts->forSession($request->session()->getId());
-        $totals = $this->carts->totals($cart);
 
-        $orderNumber = 'CMD-'.now()->format('Ym').'-'.Str::upper(Str::random(6));
-        $order = $this->orders->create([
-            'user_id' => $user->id,
-            'order_number' => $orderNumber,
-            'total' => $totals['total'],
-            'status' => 'pending',
-            'shipping_address' => $request->input('shipping_address'),
-            'payment_method' => $request->input('payment_method', 'card'),
-            'payment_status' => 'pending',
-            'tracking_number' => null,
-            'notes' => $request->input('notes'),
-        ]);
-
-        foreach ($cart->items as $item) {
-            $order->items()->create([
-                'product_id' => $item->product_id,
-                'quantity' => $item->quantity,
-                'price_at_purchase' => $item->price_at_addition,
-                'product_snapshot' => [
-                    'name' => $item->product->name,
-                    'reference' => $item->product->reference,
-                    'sku' => $item->product->sku,
-                    'price' => $item->product->price,
-                ],
-                'selected_options' => $item->selected_options,
-            ]);
+        if ($cart->items->isEmpty()) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Votre panier est vide'], 422);
+            }
+            return redirect()->route('home', ['locale' => app()->getLocale()])->with('error', 'Votre panier est vide.');
         }
 
-        Mail::raw('Commande confirmée '.$order->order_number, function ($m) use ($user) {
-            $m->to($user->email)->subject('Confirmation de commande');
+        $order = \DB::transaction(function () use ($user, $cart, $request) {
+            // Combine country code and phone number
+            $countryCode = preg_replace('/[^0-9]/', '', $request->input('country_code'));
+            $phoneNumber = preg_replace('/[^0-9]/', '', $request->input('phone_number'));
+            $fullPhone = '+' . $countryCode . $phoneNumber;
+
+            // Update user phone for future orders and notifications
+            $user->update(['phone' => $fullPhone]);
+
+            $orderNumber = 'CMD-' . now()->format('Ym') . '-' . Str::upper(Str::random(6));
+            $order = $this->orders->create([
+                'user_id' => $user->id,
+                'order_number' => $orderNumber,
+                'total' => $this->carts->totals($cart)['total'],
+                'status' => 'pending',
+                'shipping_address' => $request->input('shipping_address'),
+                'payment_method' => $request->input('payment_method', 'card'),
+                'payment_status' => 'pending',
+                'tracking_number' => null,
+                'notes' => $request->input('notes'),
+            ]);
+
+            foreach ($cart->items as $item) {
+                $order->items()->create([
+                    'product_id' => $item->product_id,
+                    'quantity' => $item->quantity,
+                    'price_at_purchase' => $item->price_at_addition,
+                    'product_snapshot' => [
+                        'name' => $item->product->name,
+                        'reference' => $item->product->reference,
+                        'sku' => $item->product->sku,
+                        'price' => $item->product->price,
+                    ],
+                    'selected_options' => $item->selected_options,
+                ]);
+            }
+
+            // Clear cart as part of the transaction
+            $this->carts->clear($cart);
+
+            return $order;
         });
 
-        // Envoyer la confirmation par WhatsApp
-        $this->whatsapp->sendOrderConfirmation($order);
+        // Notifications after successful transaction
+        try {
+            Mail::raw('Commande confirmée ' . $order->order_number, function ($m) use ($user) {
+                $m->to($user->email)->subject('Confirmation de commande');
+            });
+            $this->whatsapp->sendOrderConfirmation($order);
+        } catch (\Exception $e) {
+            \Log::error('Order notification failed: ' . $e->getMessage());
+        }
 
-        return response()->json(['order' => $order, 'message' => 'Commande créée']);
+        if ($request->wantsJson()) {
+            return response()->json(['order' => $order, 'message' => 'Commande créée']);
+        }
+
+        return redirect()->route('orders.show', ['locale' => app()->getLocale(), 'id' => $order->id])->with('success', 'Commande créée avec succès !');
     }
 }

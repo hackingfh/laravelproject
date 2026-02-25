@@ -28,7 +28,7 @@ class Order extends Model
 
     protected $casts = [
         'total' => 'decimal:2',
-        'shipping_address' => 'array',
+        'shipping_address' => 'json',
         'whatsapp_sent' => 'boolean',
     ];
 

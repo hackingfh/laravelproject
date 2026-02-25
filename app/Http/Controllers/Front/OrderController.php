@@ -26,21 +26,31 @@ class OrderController extends Controller
         ];
         $list = $this->orders->listForUser(Auth::user(), $filters, 10);
 
-        return response()->json($list);
+        return view('front.orders.index', compact('list', 'filters'));
     }
 
-    public function show(int $id)
+    public function show(string $locale, int $id)
     {
         $order = $this->orders->findByIdForUser(Auth::user(), $id);
-        abort_if(! $order, 404);
+        abort_if(!$order, 404);
+
         $tracking = [
             'carrier' => 'DHL',
             'status' => 'in_transit',
             'eta' => now()->addDays(2)->toDateString(),
         ];
-        $invoiceUrl = '/orders/'.$order->id.'/invoice.pdf';
+
+        $invoiceUrl = route('orders.invoice', ['locale' => app()->getLocale(), 'id' => $order->id]);
         $canReorder = true;
 
-        return response()->json(compact('order', 'tracking', 'invoiceUrl', 'canReorder'));
+        return view('front.orders.show', compact('order', 'tracking', 'invoiceUrl', 'canReorder'));
+    }
+
+    public function invoice(string $locale, int $id)
+    {
+        $order = $this->orders->findByIdForUser(Auth::user(), $id);
+        abort_if(!$order, 404);
+
+        return view('front.orders.invoice', compact('order'));
     }
 }

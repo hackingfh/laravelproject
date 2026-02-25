@@ -6,6 +6,7 @@ use App\Http\Controllers\Front\CollectionController as FrontCollections;
 use App\Http\Controllers\Front\HomeController as FrontHome;
 use App\Http\Controllers\Front\OrderController as FrontOrders;
 use App\Http\Controllers\Front\ProductController as FrontProducts;
+use App\Http\Controllers\Front\AccountController as FrontAccount;
 use Illuminate\Support\Facades\Route;
 
 Route::group(['middleware' => ['locale']], function () {
@@ -28,9 +29,16 @@ Route::group(['middleware' => ['locale']], function () {
 
     Route::get('/{locale}/orders', [FrontOrders::class, 'index'])->whereIn('locale', ['fr', 'en'])->name('orders.index');
     Route::get('/{locale}/orders/{id}', [FrontOrders::class, 'show'])->whereIn('locale', ['fr', 'en'])->name('orders.show');
+    Route::get('/{locale}/orders/{id}/invoice', [FrontOrders::class, 'invoice'])->whereIn('locale', ['fr', 'en'])->name('orders.invoice');
 
     Route::get('/{locale}/history', [FrontHome::class, 'history'])->whereIn('locale', ['fr', 'en'])->name('history');
     Route::get('/{locale}/contact', [FrontHome::class, 'contact'])->whereIn('locale', ['fr', 'en'])->name('contact');
+
+    Route::middleware('auth')->group(function () {
+        Route::get('/{locale}/account', [FrontAccount::class, 'index'])->whereIn('locale', ['fr', 'en'])->name('account.index');
+        Route::post('/{locale}/account/update', [FrontAccount::class, 'update'])->whereIn('locale', ['fr', 'en'])->name('account.update');
+        Route::post('/{locale}/account/password', [FrontAccount::class, 'updatePassword'])->whereIn('locale', ['fr', 'en'])->name('account.password');
+    });
 });
 
 Route::get('/debug/php', function () {
@@ -49,3 +57,14 @@ Route::get('/', function () {
 });
 
 require __DIR__ . '/auth.php';
+
+// Admin Routes
+Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
+    Route::get('/dashboard', \App\Livewire\Admin\Dashboard::class)->name('dashboard');
+    Route::get('/products', \App\Livewire\Admin\ProductList::class)->name('products');
+    Route::get('/products/create', \App\Livewire\Admin\ProductForm::class)->name('products.create');
+    Route::get('/products/{id}/edit', \App\Livewire\Admin\ProductForm::class)->name('products.edit');
+    Route::get('/collections', \App\Livewire\Admin\CatalogueManager::class)->name('collections');
+    Route::get('/activity', \App\Livewire\Admin\ActivityHistory::class)->name('activity');
+});
+

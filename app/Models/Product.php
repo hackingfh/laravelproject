@@ -43,6 +43,21 @@ class Product extends Model
         'warranty_years' => 'integer',
     ];
 
+    /**
+     * Prioritize images from the media relationship over the legacy JSON column.
+     */
+    public function getImagesAttribute($value)
+    {
+        if ($this->relationLoaded('media') || $this->media()->exists()) {
+            $mediaUrls = $this->media->pluck('url')->toArray();
+            if (!empty($mediaUrls)) {
+                return $mediaUrls;
+            }
+        }
+
+        return json_decode($value, true) ?: [];
+    }
+
     public function collection(): BelongsTo
     {
         return $this->belongsTo(Collection::class);

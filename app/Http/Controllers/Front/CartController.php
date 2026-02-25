@@ -31,14 +31,23 @@ class CartController extends Controller
     public function add(StoreCartItemRequest $request, string $locale, Product $product)
     {
         $cart = $this->carts->forSession($request->session()->getId());
-        if ($product->stock < (int) $request->input('quantity', 1)) {
-            return response()->json(['message' => 'Stock insuffisant'], 422);
-        }
-        $options = $request->input('selected_options', []);
         $qty = (int) $request->input('quantity', 1);
+
+        if ($product->stock < $qty) {
+            if ($request->wantsJson()) {
+                return response()->json(['message' => 'Stock insuffisant'], 422);
+            }
+            return redirect()->back()->with('error', 'Stock insuffisant pour ce produit.');
+        }
+
+        $options = $request->input('selected_options', []);
         $this->carts->addItem($cart, $product, $qty, $options);
 
-        return response()->json(['message' => 'Produit ajouté']);
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Produit ajouté']);
+        }
+
+        return redirect()->back()->with('success', 'Le produit a été ajouté à votre panier.');
     }
 
     public function update(Request $request, string $locale)
@@ -56,7 +65,11 @@ class CartController extends Controller
         $this->carts->removeItem($cart, (int) $request->input('item_id'));
         $totals = $this->carts->totals($cart);
 
-        return response()->json(['message' => 'Article supprimé', 'totals' => $totals]);
+        if ($request->wantsJson()) {
+            return response()->json(['message' => 'Article supprimé', 'totals' => $totals]);
+        }
+
+        return redirect()->back()->with('success', 'Article supprimé du panier.');
     }
 
     public function applyPromo(Request $request, string $locale)

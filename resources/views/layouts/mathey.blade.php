@@ -41,11 +41,7 @@
                     </path>
                 </svg>
             </button>
-            <form action="{{ route('products.index', ['locale' => app()->getLocale()]) }}" method="GET">
-                <input type="text" name="search" placeholder="Rechercher une collection, un modèle..."
-                    class="w-full bg-transparent border-b-2 border-mathey-gold py-4 text-2xl md:text-4xl text-white placeholder-white/30 focus:outline-none focus:border-white transition-colors duration-300">
-                <p class="mt-4 text-white/50 text-sm italic">Appuyez sur Entrée pour rechercher</p>
-            </form>
+            <livewire:front.global-search />
         </div>
     </div>
 
@@ -104,13 +100,35 @@
 
                     <!-- User Account -->
                     @auth
-                        <a href="{{ route('orders.index', ['locale' => app()->getLocale()]) }}"
-                            class="p-2 text-mathey-gray hover:text-mathey-gold transition-colors duration-300">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
-                            </svg>
-                        </a>
+                        <div class="relative group">
+                            <button
+                                class="p-2 text-mathey-gray hover:text-mathey-gold transition-colors duration-300 flex items-center gap-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                                </svg>
+                                <span class="text-xs font-medium hidden md:block">{{ Auth::user()->name }}</span>
+                            </button>
+                            <div
+                                class="absolute right-0 top-full mt-2 w-48 bg-white border border-mathey-border rounded-xl shadow-xl py-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-[70]">
+                                <a href="{{ route('account.index', ['locale' => app()->getLocale()]) }}"
+                                    class="block px-4 py-2 text-sm text-mathey-blue hover:bg-mathey-cream transition">Paramètres</a>
+                                <a href="{{ route('orders.index', ['locale' => app()->getLocale()]) }}"
+                                    class="block px-4 py-2 text-sm text-mathey-blue hover:bg-mathey-cream transition">Mes
+                                    Commandes</a>
+                                @if(Auth::user()->is_admin)
+                                    <hr class="my-1 border-mathey-border">
+                                    <a href="{{ route('admin.dashboard') }}"
+                                        class="block px-4 py-2 text-sm text-mathey-gold font-bold hover:bg-mathey-cream transition">Administration</a>
+                                @endif
+                                <hr class="my-1 border-mathey-border">
+                                <form method="POST" action="{{ route('logout') }}">
+                                    @csrf
+                                    <button type="submit"
+                                        class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition">Déconnexion</button>
+                                </form>
+                            </div>
+                        </div>
                     @else
                         <a href="{{ route('login') }}"
                             class="p-2 text-mathey-gray hover:text-mathey-gold transition-colors duration-300">
@@ -152,6 +170,29 @@
                     class="block text-mathey-text hover:text-mathey-gold transition-colors duration-300 font-medium">
                     Contact
                 </a>
+                <hr class="border-mathey-border">
+                @auth
+                    <a href="{{ route('account.index', ['locale' => app()->getLocale()]) }}"
+                        class="block text-mathey-blue hover:text-mathey-gold transition-colors duration-300 font-medium">
+                        Mon Compte
+                    </a>
+                    <a href="{{ route('orders.index', ['locale' => app()->getLocale()]) }}"
+                        class="block text-mathey-blue hover:text-mathey-gold transition-colors duration-300 font-medium">
+                        Mes Commandes
+                    </a>
+                    <form method="POST" action="{{ route('logout') }}">
+                        @csrf
+                        <button type="submit"
+                            class="block w-full text-left text-red-600 hover:text-red-700 transition-colors duration-300 font-medium">
+                            Déconnexion
+                        </button>
+                    </form>
+                @else
+                    <a href="{{ route('login') }}"
+                        class="block text-mathey-text hover:text-mathey-gold transition-colors duration-300 font-medium">
+                        Se connecter
+                    </a>
+                @endauth
             </nav>
         </div>
 
@@ -172,6 +213,21 @@
             </div>
         </div>
     </header>
+
+    @if(session('success') || session('error'))
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+            @if(session('success'))
+                <div class="p-4 bg-green-100 text-green-700 rounded-lg border border-green-200">
+                    {{ session('success') }}
+                </div>
+            @endif
+            @if(session('error'))
+                <div class="p-4 bg-red-100 text-red-700 rounded-lg border border-red-200">
+                    {{ session('error') }}
+                </div>
+            @endif
+        </div>
+    @endif
 
     <!-- Main Content -->
     <main class="min-h-screen">
@@ -371,6 +427,30 @@
                 header.classList.remove('shadow-lg', 'py-1');
             }
         });
+
+        // Live Sync / Auto-reload
+        (function ()  {
+            let lastSync = null;
+            const checkSync = async () => {
+                try {
+                    const response = await fetch('/storage/sync.json?cache-bust=' + Date.now());
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (lastSync && data.timestamp > lastSync) {
+                            console.log('Sync detected, reloading...');
+                            window.location.reload();
+                        }
+                        lastSync = data.timestamp;
+                    }
+                } catch (e) {
+                    // Ignore errors (file might not exist yet)
+                }
+            };
+            // Initial check to set the baseline
+            checkSync();
+            // Polling every 5 seconds
+            setInterval(checkSync, 5000);
+        })();
     </script>
 </body>
 

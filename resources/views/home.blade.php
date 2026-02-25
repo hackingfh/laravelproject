@@ -312,12 +312,33 @@
 
         // Add to cart functionality
         function addToCart(productId) {
-            alert('Article ajouté au panier !');
-            const cartIcon = document.querySelector('a[href="/cart"] span');
-            if (cartIcon) {
-                const currentCount = parseInt(cartIcon.textContent) || 0;
-                cartIcon.textContent = currentCount + 1;
-            }
+            const btn = event.currentTarget;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<span class="animate-spin inline-block">⌛</span>';
+            btn.disabled = true;
+
+            fetch('{{ url(app()->getLocale() . "/cart/add") }}/' + productId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}'
+                },
+                body: JSON.stringify({ quantity: 1 })
+            })
+            .then(res => res.json())
+            .then(data => {
+                alert(data.message || 'Article ajouté !');
+                window.location.reload(); // Simple for now to update the cart icon
+            })
+            .catch(err => {
+                console.error(err);
+                alert('Erreur lors de l\'ajout au panier');
+            })
+            .finally(() => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            });
         }
 
         // Home Page GSAP Animations

@@ -11,39 +11,42 @@ class ProductRepository implements ProductRepositoryInterface
 {
     public function search(array $filters, int $perPage = 30)
     {
-        if (DB::connection()->getDriverName() === 'sqlite' && ! extension_loaded('pdo_sqlite')) {
+        if (DB::connection()->getDriverName() === 'sqlite' && !extension_loaded('pdo_sqlite')) {
             return new LengthAwarePaginator([], 0, $perPage, 1);
         }
         $q = Product::query()->with(['collection', 'media'])->where('is_visible', true);
 
-        if (! empty($filters['q'])) {
+        if (!empty($filters['q'])) {
             $term = $filters['q'];
             $q->where(function ($w) use ($term) {
-                $w->where('name', 'like', '%'.$term.'%')
-                    ->orWhere('reference', 'like', '%'.$term.'%')
-                    ->orWhere('description', 'like', '%'.$term.'%');
+                $w->where('name', 'like', '%' . $term . '%')
+                    ->orWhere('reference', 'like', '%' . $term . '%')
+                    ->orWhere('description', 'like', '%' . $term . '%');
             });
         }
-        if (! empty($filters['price_min'])) {
+        if (!empty($filters['price_min'])) {
             $q->where('price', '>=', (float) $filters['price_min']);
         }
-        if (! empty($filters['price_max'])) {
+        if (!empty($filters['price_max'])) {
             $q->where('price', '<=', (float) $filters['price_max']);
         }
-        if (! empty($filters['brand'])) {
-            $q->whereHas('collection', fn ($c) => $c->where('name', 'like', '%'.$filters['brand'].'%'));
+        if (!empty($filters['brand'])) {
+            $q->whereHas('collection', fn($c) => $c->where('name', 'like', '%' . $filters['brand'] . '%'));
         }
-        if (! empty($filters['category'])) {
-            $q->whereHas('collection', fn ($c) => $c->where('slug', $filters['category']));
+        if (!empty($filters['category'])) {
+            $q->whereHas('collection', fn($c) => $c->where('slug', $filters['category']));
         }
-        if (! empty($filters['availability'])) {
+        if (!empty($filters['collection'])) {
+            $q->whereHas('collection', fn($c) => $c->where('slug', $filters['collection']));
+        }
+        if (!empty($filters['availability'])) {
             if ($filters['availability'] === 'in_stock') {
                 $q->where('stock', '>', 0);
             } elseif ($filters['availability'] === 'out_of_stock') {
                 $q->where('stock', '=', 0);
             }
         }
-        if (! empty($filters['sort'])) {
+        if (!empty($filters['sort'])) {
             foreach (explode(',', $filters['sort']) as $criterion) {
                 [$field, $dir] = array_pad(explode(':', $criterion), 2, 'asc');
                 switch ($field) {

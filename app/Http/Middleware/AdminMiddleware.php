@@ -12,8 +12,11 @@ class AdminMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         $user = Auth::user();
-        if (! $user || ! $user->is_admin) {
-            return response()->json(['message' => 'Admin access required'], 403);
+        if (!$user || !$user->is_admin) {
+            if ($request->expectsJson()) {
+                return response()->json(['message' => 'Admin access required'], 403);
+            }
+            return redirect()->route('login')->with('error', 'Admin access required');
         }
 
         return $next($request);

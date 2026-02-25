@@ -40,7 +40,7 @@ class CartRepository implements CartRepositoryInterface
 
     public function totals(Cart $cart): array
     {
-        $subtotal = $cart->items->sum(fn ($i) => $i->quantity * (float) $i->price_at_addition);
+        $subtotal = $cart->items->sum(fn($i) => $i->quantity * (float) $i->price_at_addition);
         $shipping = $subtotal > 1000 ? 0 : 15;
         $tax = round($subtotal * 0.077, 2);
         $total = round($subtotal + $shipping + $tax, 2);
@@ -59,5 +59,11 @@ class CartRepository implements CartRepositoryInterface
         $totals['total'] = max(0, $totals['total'] - $discount);
 
         return $totals + ['discount' => $discount, 'code' => $code];
+    }
+
+    public function clear(Cart $cart): void
+    {
+        $cart->items()->delete();
+        $cart->update(['total' => 0]);
     }
 }
