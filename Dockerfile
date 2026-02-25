@@ -9,8 +9,6 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev \
     zip \
     unzip \
-    sqlite3 \
-    libsqlite3-dev \
     libpq-dev \
     libicu-dev \
     libzip-dev
@@ -18,8 +16,8 @@ RUN apt-get update && apt-get install -y \
 # Clear cache
 RUN apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Install PHP extensions
-RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd pdo_sqlite pdo_pgsql intl zip
+# Install PHP extensions (pdo_pgsql BEFORE composer install)
+RUN docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd pdo_pgsql intl zip
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
@@ -37,18 +35,13 @@ RUN composer install --no-interaction --no-dev --optimize-autoloader
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
-# Apache configuration
+# Apache configuration - set document root to /public
 ENV APACHE_DOCUMENT_ROOT /var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/000-default.conf
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 RUN a2enmod rewrite
 
-# Setup SQLite database
-RUN mkdir -p database && touch database/database.sqlite
-RUN chown www-data:www-data database/database.sqlite
-
-# Run build scripts (optional, if you have NPM assets pre-built or want to build them here)
-# For now, we assume assets are pushed or we install node
+# Install Node.js and build frontend assets
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install && npm run build
@@ -57,8 +50,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Expose port
-EXPOSE 80
+# Render uses PORT env var (default 10000), not 80
+# The entrypoint script will reconfigure Apache to listen on $PORT
+EXPOSE 10000
 
 # Entrypoint setup
 ENTRYPOINT ["docker-entrypoint.sh"]
