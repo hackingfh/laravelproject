@@ -12,20 +12,29 @@ echo "================================="
 
 # -------------------------------------------------------
 # Bridge Render's DATABASE_URL to Laravel's individual DB_* variables
-# Render provides DATABASE_URL as:
+# Render provides DATABASE_URL or INTERNAL_DATABASE_URL as:
 #   postgres://user:password@host:port/dbname
-# or postgresql://user:password@host:port/dbname
 # Laravel needs: DB_CONNECTION, DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME, DB_PASSWORD
 # -------------------------------------------------------
+DB_URL_TO_PARSE=""
+
 if [ -n "$DATABASE_URL" ]; then
-    echo "✅ DATABASE_URL found, parsing into DB_* variables..."
+    echo "✅ DATABASE_URL found"
+    DB_URL_TO_PARSE="$DATABASE_URL"
+elif [ -n "$INTERNAL_DATABASE_URL" ]; then
+    echo "✅ INTERNAL_DATABASE_URL found"
+    DB_URL_TO_PARSE="$INTERNAL_DATABASE_URL"
+fi
+
+if [ -n "$DB_URL_TO_PARSE" ]; then
+    echo "Parsing database URL into DB_* variables..."
 
     # Always force pgsql driver
     export DB_CONNECTION="pgsql"
 
     # Parse the URL components
     # Remove the postgres:// or postgresql:// prefix
-    DB_URL_STRIPPED="${DATABASE_URL#postgres://}"
+    DB_URL_STRIPPED="${DB_URL_TO_PARSE#postgres://}"
     DB_URL_STRIPPED="${DB_URL_STRIPPED#postgresql://}"
 
     # Extract user:password@host:port/dbname
@@ -41,12 +50,17 @@ if [ -n "$DATABASE_URL" ]; then
     export DB_HOST="${HOSTPORT%%:*}"
     export DB_PORT="${HOSTPORT#*:}"
 
-    # Also set DB_URL for Laravel's url config key
-    export DB_URL="$DATABASE_URL"
+    # Fallback port for pgsql if not in URL
+    if [ "$DB_HOST" = "$HOSTPORT" ]; then
+        export DB_PORT="5432"
+    fi
 
-    echo "✅ Parsed DATABASE_URL successfully"
+    # Also set DB_URL for Laravel's url config key
+    export DB_URL="$DB_URL_TO_PARSE"
+
+    echo "✅ Parsed database URL successfully"
 else
-    echo "⚠️ DATABASE_URL not found!"
+    echo "⚠️ No Database URL found (DATABASE_URL or INTERNAL_DATABASE_URL)!"
     echo "Using individual DB_* variables if set..."
     # Default to pgsql if DB_CONNECTION not set
     export DB_CONNECTION="${DB_CONNECTION:-pgsql}"

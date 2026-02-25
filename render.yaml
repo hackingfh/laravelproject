@@ -16,6 +16,10 @@ services:
         fromDatabase:
           name: swiss-watches-db
           property: connectionString
+      - key: INTERNAL_DATABASE_URL
+        fromDatabase:
+          name: swiss-watches-db
+          property: connectionString
       - key: LOG_CHANNEL
         value: stderr
       - key: APP_KEY
