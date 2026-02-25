@@ -5,7 +5,7 @@ services:
     plan: free # Change to starter or higher for persistence (Disk)
     envVars:
       - key: APP_ENV
-        value: production
+        value: local
       - key: APP_DEBUG
         value: true # Temporairement à true pour le diagnostic
       - key: APP_URL
