@@ -50,8 +50,13 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
     apt-get install -y nodejs && \
     npm install && npm run build
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 # Expose port
 EXPOSE 80
 
-# Start command
+# Entrypoint setup
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["apache2-foreground"]
