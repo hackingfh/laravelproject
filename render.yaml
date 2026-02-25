@@ -5,22 +5,24 @@ services:
     plan: free # Change to starter or higher for persistence (Disk)
     envVars:
       - key: APP_ENV
-        value: local
+        value: production
       - key: APP_DEBUG
-        value: true # Temporairement à true pour le diagnostic
+        value: false
       - key: APP_URL
         sync: false
       - key: DB_CONNECTION
         value: pgsql
-      # DATABASE_URL est injecté automatiquement par Render si vous liez une DB PostgreSQL
+      - key: DATABASE_URL
+        fromDatabase:
+          name: swiss-watches-db
+          property: connectionString
       - key: LOG_CHANNEL
         value: stderr
       - key: APP_KEY
         generateValue: true
       - key: NODE_VERSION
         value: 20
-    # Uncomment below for persistence (requires a paid plan)
-    # disks:
-    #   - name: sqlite-data
-    #     mountPath: /opt/render/project/src/database
-    #     sizeGB: 1
+
+databases:
+  - name: swiss-watches-db
+    plan: free
