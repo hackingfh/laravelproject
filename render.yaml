@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: swiss-watches-mauritania
+    env: php
+    plan: free # Change to starter or higher for persistence (Disk)
+    buildCommand: ./render-build.sh
+    startCommand: php artisan serve --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: false
+      - key: APP_URL
+        sync: false
+      - key: DB_CONNECTION
+        value: sqlite
+      - key: DB_DATABASE
+        value: /opt/render/project/src/database/database.sqlite
+      - key: LOG_CHANNEL
+        value: errorlog
+      - key: APP_KEY
+        generateValue: true
+      - key: NODE_VERSION
+        value: 20
+    # Uncomment below for persistence (requires a paid plan)
+    # disks:
+    #   - name: sqlite-data
+    #     mountPath: /opt/render/project/src/database
+    #     sizeGB: 1
