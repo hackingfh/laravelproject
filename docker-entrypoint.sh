@@ -108,7 +108,19 @@ php artisan db:show 2>&1 || { echo "❌ Database connection FAILED — aborting 
 
 echo "Running migrations..."
 php artisan migrate --force --ansi 2>&1 || { echo "❌ Migrations FAILED — aborting deployment."; exit 1; }
-php artisan db:seed --force
+php artisan tinker --execute="
+if (!\App\Models\User::where('email', 'admin@example.com')->exists()) {
+    \App\Models\User::create([
+        'name' => 'Admin',
+        'email' => 'admin@example.com',
+        'password' => bcrypt('password'),
+        'is_admin' => true,
+    ]);
+    echo '✅ Admin créé avec succès.\n';
+} else {
+    echo 'ℹ️ Admin existe déjà.\n';
+}
+"
 echo "=== Docker Entrypoint Complete ==="
 
 # Execute the main command (Apache)
