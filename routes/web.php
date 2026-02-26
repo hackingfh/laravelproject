@@ -69,23 +69,4 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(fun
 });
 
 
-Route::get('/create-admin', function () {
-    try {
-        // Test de connexion DB
-        \DB::connection()->getPdo();
-        
-        $user = \App\Models\User::where('email', 'admin@example.com')->first();
-        if (!$user) {
-            $user = new \App\Models\User();
-            $user->name = 'Admin';
-            $user->email = 'admin@example.com';
-            $user->password = \Illuminate\Support\Facades\Hash::make('admin123');
-            $user->is_admin = true;
-            $user->save();
-            return "Admin créé avec succès !";
-        }
-        return "Admin existe déjà.";
-    } catch (\Exception $e) {
-        return "Erreur : " . $e->getMessage() . "<br>" . nl2br($e->getTraceAsString());
-    }
-});
+

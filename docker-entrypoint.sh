@@ -108,7 +108,7 @@ php artisan db:show 2>&1 || { echo "❌ Database connection FAILED — aborting 
 
 echo "Running migrations..."
 php artisan migrate --force --ansi 2>&1 || { echo "❌ Migrations FAILED — aborting deployment."; exit 1; }
-
+php artisan db:seed --force
 echo "=== Docker Entrypoint Complete ==="
 
 # Execute the main command (Apache)

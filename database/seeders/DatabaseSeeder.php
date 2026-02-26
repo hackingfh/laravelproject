@@ -8,25 +8,24 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Product;
 use App\Models\User;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
-    use WithoutModelEvents;
-
-    /**
-     * Seed the application's database.
-     */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Admin',
-            'email' => 'admin@example.com',
-            'password' => 'password',
-            'is_admin' => true,
-        ]);
+        // Créer l'admin s'il n'existe pas
+        User::firstOrCreate(
+            ['email' => 'admin@example.com'],
+            [
+                'name' => 'Admin',
+                'password' => Hash::make('password'), // Change le mot de passe si besoin
+                'is_admin' => true,
+            ]
+        );
 
+        // Le reste du code (collections, options, etc.)
         $collections = Collection::factory()->count(5)->create();
         $options = Option::factory()->count(3)->create();
 
