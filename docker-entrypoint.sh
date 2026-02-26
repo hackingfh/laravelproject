@@ -4,11 +4,14 @@ set -e
 echo "=== Docker Entrypoint Starting ==="
 
 # -------------------------------------------------------
-# DEBUG: Dump ALL environment variables to diagnose Render injection
+# DEBUG: Check APP_KEY (Critical for Laravel decryption/sessions)
 # -------------------------------------------------------
-echo "=== ALL ENVIRONMENT VARIABLES ==="
-env | sort
-echo "================================="
+if [ -z "$APP_KEY" ]; then
+    echo "❌ APP_KEY is NOT set! This will cause 500 Server Errors."
+    echo "Please set APP_KEY in your Render environment variables."
+else
+    echo "✅ APP_KEY is set"
+fi
 
 # -------------------------------------------------------
 # Bridge Render's DATABASE_URL to Laravel's individual DB_* variables
